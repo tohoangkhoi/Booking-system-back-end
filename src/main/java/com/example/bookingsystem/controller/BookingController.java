@@ -17,7 +17,12 @@ public class BookingController {
     @Autowired
     private BookingService bookingService;
 
-    @GetMapping
+    @GetMapping("/")
+    public String testing() {
+        return "Server is running";
+    }
+
+    @GetMapping("getAll")
     public ResponseEntity<List<Booking>> getBookings (@RequestBody BookingDto bookingDto) {
         return new ResponseEntity<>(bookingService.getAllBookingsByCourtAndDate(bookingDto), HttpStatus.OK);
     }

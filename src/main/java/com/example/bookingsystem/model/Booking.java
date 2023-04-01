@@ -16,9 +16,15 @@ public class Booking {
     private Long id;
     private String date;
     private String time;
+
     private boolean isBooked;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     private Court court;
+
+    @OneToOne(cascade = CascadeType.ALL,fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonIgnore
+    private Game game;
+
 }
