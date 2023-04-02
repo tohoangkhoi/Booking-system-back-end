@@ -16,7 +16,6 @@ public class Booking {
     private Long id;
     private String date;
     private String time;
-
     private boolean isBooked;
 
     @ManyToOne(fetch = FetchType.LAZY)

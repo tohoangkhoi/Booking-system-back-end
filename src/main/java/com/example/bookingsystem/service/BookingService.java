@@ -1,16 +1,17 @@
 package com.example.bookingsystem.service;
 
+import com.example.bookingsystem.exception.DuplicateException;
+import com.example.bookingsystem.exception.ResourceNotFoundException;
 import com.example.bookingsystem.model.Court;
 import com.example.bookingsystem.service.bookingDto.BookingDto;
 import com.example.bookingsystem.model.Booking;
 import com.example.bookingsystem.repository.BookingRepository;
 import com.example.bookingsystem.repository.CourtRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
@@ -20,17 +21,30 @@ public class BookingService {
     @Autowired
     private BookingRepository bookingRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     private final String[] timeslot =
-   {"8:00-8:50 am",
-    "9:00-9:50 am",
-    "10:00-10:50 am",
-    "11:00-11:50 am",
-    "12:00-12:50 pm",
-    "1:00-1:50 pm",
-    "2:30-3:20 pm",
-    "4:00-4:50 pm",
-    "5:30-6:20 pm",
-    "7:00-7:50 pm"};
+   {
+            "08:00-08:30",
+            "08:30-09:00",
+            "09:00-09:30",
+            "09:30-10:00",
+            "10:00-10:30",
+            "10:30-11:00",
+            "11:00-11:30",
+            "11:30-12:00",
+            "12:00-12:30",
+            "12:30-13:00",
+            "13:00-13:30",
+            "13:30-14:00",
+            "14:00-14:30",
+            "14:30-15:00",
+            "15:00-15:30",
+            "15:30-16:00",
+            "16:00-16:30",
+            "16:30-17:00"
+   };
 
     /*
     Retrieve the bookings for a day
@@ -43,10 +57,10 @@ public class BookingService {
 
         Court court = courtRepository.findCourtByCourtName(bookingDto.courtName);
         if(court == null) {
-            throw new IllegalArgumentException("cannot find court");
+            throw new ResourceNotFoundException("cannot find court");
         }
-        List<Booking> bookingList =  bookingRepository.findBookingsByCourtAndDate(court, bookingDto.date);
 
+        List<Booking> bookingList = bookingRepository.findBookingsByCourtAndDate(court,bookingDto.date);
         if(bookingList.size() == 0) {
             Long counter = 0L;
             bookingList = court.getBookings();
@@ -57,6 +71,7 @@ public class BookingService {
                         .date(bookingDto.date)
                         .time(item)
                         .court(court)
+                        .isBooked(false)
                         .build();
                 bookingList.add(booking);
             }
@@ -68,28 +83,34 @@ public class BookingService {
     }
 
     /*
-    * Find the bookingList of that date
-    * Find the booking's section that user want to book
-    * if booking.isBooked() == true, not ready to book
-    * if booking.isBooked() == false, ready to book
+    * Find if the booking is ready to booked
+    * If ready, booked.
     * */
-    public boolean book(BookingDto bookingDto) {
+    public void book(BookingDto bookingDto) {
         Court court = courtRepository.findCourtByCourtName(bookingDto.courtName);
         if(court == null) {
-            throw new IllegalArgumentException("cannot find court");
+            throw new ResourceNotFoundException("cannot find court");
         }
-        List<Booking>bookingList =court.getBookings();
+        List<Booking>courtBookings =court.getBookings();
+        List<Booking>existedBooking = bookingRepository.findBookingsByCourtAndDateAndTime(court, bookingDto.date, bookingDto.time);
 
-         for(Booking booking : bookingList) {
-             if(booking.getDate().equals(bookingDto.date) && booking.getTime().equals(bookingDto.time)) {
-                if (booking.isBooked()) return false;
+        if(existedBooking.size()!=0) {
+            throw new DuplicateException("Booking is not available.");
+        }
 
-                booking.setBooked(true);
-                court.setBookings(bookingList);
-                courtRepository.save(court);
-                return true;
-             }
-         }
+        Booking booking = modelMapper.map(bookingDto, Booking.class);
+        courtBookings.add(booking);
+        court.setBookings(courtBookings);
+
+        courtRepository.save(court);
+        System.out.println("Added booking: " +booking);
+    }
+
+    /*
+    * As a user, I want to know which court is available to be booked at this time.
+    */
+    public boolean isAvailable(BookingDto bookingDto) {
+        List<Court> courts = courtRepository.findAll();
         return true;
     }
 }
